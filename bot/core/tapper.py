@@ -85,16 +85,16 @@ class Tapper:
             tg_web_data = unquote(
                 string=unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0]))
             query_id = tg_web_data.split('query_id=')[1].split('&user=')[0]
-            user = quote(tg_web_data.split("&user=")[1].split('&auth_date=')[0])
-            auth_date = tg_web_data.split('&auth_date=')[1].split('&hash=')[0]
+            user_name = tg_web_data.split('"username":"')[1].split('","')[0] if "username" in tg_web_data else ''
+            first_name = tg_web_data.split('"first_name":"')[1].split('","')[0]
             hash_ = tg_web_data.split('&hash=')[1]
-
             self.locale = tg_web_data.split('"language_code":"')[1][:2]
             self.user_id = int(tg_web_data.split('"id":')[1].split(',"')[0])
             if self.tg_client.is_connected:
                 await self.tg_client.disconnect()
 
-            return f"query_id={query_id}&user={user}&auth_date={auth_date}&hash={hash_}"
+            return (f"query_id={query_id}&hash={hash_}&language_code={self.locale}&locale={self.locale}&"
+                    f"user_id={self.user_id }&username={user_name}&first_name={first_name}")
 
         except InvalidSession as error:
             raise error
@@ -296,7 +296,7 @@ class Tapper:
             try:
                 if time() - access_token_created_time >= token_live_time:
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
-                    init_params = tg_web_data + '&start_param=' + get_link_code() + '&locale=' + self.locale
+                    init_params = tg_web_data + '&start_param=' + get_link_code()
                     user_info = await self.get_info_data(http_client=http_client, init_params=init_params)
 
                     if user_info.get('country') is None:
