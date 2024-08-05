@@ -182,27 +182,26 @@ class Tapper:
         except Exception as error:
             logger.error(f"{self.session_name} | Error while setting country code: {error}")
 
-    async def claim_daily(self, http_client: aiohttp.ClientSession, task_id: str):
+    async def claim_daily(self, http_client: aiohttp.ClientSession, tasks: list[dict[str, str]]):
         try:
-            params = 'user_id=' + str(self.user_id) + '&task_id=' + task_id
-            response = await http_client.get(f'https://new.trstempire.com/api/daily_rewards?{params}')
-            response.raise_for_status()
-            response_json = await response.json()
+            current_task = None
+            for task in tasks:
+                if task['isCurrentDay']:
+                    current_task = task
 
-            if (response_json.get('is_current_day_activated') is None
-                    or not response_json.get('is_current_day_activated')):
-                payload = {
+            if not current_task['completed']:
+                json_data = {
                     'user_id': self.user_id,
-                    'task_id': task_id
+                    'task_id': current_task['_id']
                 }
-                current_day = response_json.get('current_day')
-                response = await http_client.post(f'https://new.trstempire.com/api/daily_reward', json=payload)
+                response = await http_client.post(f'https://new.trstempire.com/api/v1/tasks/complete', json=json_data)
                 response.raise_for_status()
                 response_json = await response.json()
-                if response_json.get('success'):
+
+                if response_json.get('active'):
                     logger.success(
-                        f"{self.session_name} | Daily Claimed! | New Balance: <e>{response_json['balance']}</e> |"
-                        f" Day count: <g>{current_day}</g>")
+                        f"{self.session_name} | Daily Claimed! | Reward: <e>{response_json['reward']}</e> |"
+                        f" Day count: <g>{response_json['day']}</g>")
 
         except Exception as error:
             logger.error(f"{self.session_name} | Unknown error when Daily Claiming: {error}")
@@ -210,24 +209,21 @@ class Tapper:
 
     async def processing_tasks(self, http_client: aiohttp.ClientSession):
         try:
-            params = 'user_id=' + str(self.user_id) + '&locale=' + self.locale
-            response = await http_client.get(url=f'https://new.trstempire.com/api/tasks?{params}')
+            response = await http_client.get(url=f'https://new.trstempire.com/api/v1/tasks/grouped/{self.user_id}')
             response.raise_for_status()
             tasks_json = await response.json()
 
-            daily_task = tasks_json['daily_tasks'][0]
-            tasks = tasks_json['tasks'] + tasks_json['partner_tasks']
+            daily_tasks = tasks_json['dailyTasks']['tasks']
+            tasks = tasks_json['trustTasks'] + tasks_json['partnerTasks']
 
-            await self.claim_daily(http_client=http_client, task_id=daily_task['task_id'])
+            await self.claim_daily(http_client=http_client, tasks=daily_tasks)
             await asyncio.sleep(delay=3)
 
             if settings.AUTO_TASK:
                 for task in tasks:
                     title = task['task_data']['title'].split('<br>')[0]
-                    if task['type'] == 'tg':    #broken task type
-                        continue
-                    if (task['type'] != 'tg-subscription'
-                            and task['available'] and not task['completed']):
+                    if (task['type'] != 'tg_subscription'
+                            and task['active'] and not task['completed']):
                         logger.info(f"{self.session_name} | Performing task <lc>{title}</lc>...")
                         response_data = await self.perform_task(http_client=http_client, task_id=task['id'])
                         if response_data and response_data.get('success'):
@@ -237,8 +233,8 @@ class Tapper:
                         await asyncio.sleep(delay=randint(5, 10))
                     elif not task['completed'] and settings.JOIN_CHANNELS:
                         logger.info(f"{self.session_name} | Performing TG <lc>{title}</lc>...")
-                        await self.join_tg_channel(task['link'])
-                        response_data = await self.perform_tg_task(http_client=http_client, task_id=task['id'])
+                        await self.join_tg_channel(task['url'])
+                        response_data = await self.perform_tg_task(http_client=http_client, task_id=task['_id'])
                         if response_data and response_data.get('success'):
                             logger.success(f"{self.session_name} | Task <lc>{title}</lc>"
                                            f" completed! | Reward: <e>+{task['reward']}</e> points")
@@ -271,7 +267,7 @@ class Tapper:
                 "user_id": self.user_id,
                 "task_id": task_id
             }
-            response = await http_client.post(url='https://new.trstempire.com/api/tasks/check-tg-subscription/',
+            response = await http_client.post(url='https://new.trstempire.com/api/v1/tasks/complete',
                                               json=payload)
             response.raise_for_status()
             response_json = await response.json()
