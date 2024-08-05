@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     AUTO_TASK: bool = True
     JOIN_CHANNELS: bool = True
     USE_REF: bool = True
-    USE_PROXY_FROM_FILE: bool = True
+    USE_PROXY_FROM_FILE: bool = False
 
 
 settings = Settings()
