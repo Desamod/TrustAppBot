@@ -189,7 +189,7 @@ class Tapper:
                 if task['isCurrentDay']:
                     current_task = task
 
-            if not current_task['completed']:
+            if not current_task.get('isCompleted'):
                 json_data = {
                     'user_id': self.user_id,
                     'task_id': current_task['_id']
