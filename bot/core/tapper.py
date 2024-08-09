@@ -119,7 +119,7 @@ class Tapper:
     async def get_rewards(self, http_client: aiohttp.ClientSession):
         try:
             params = 'user_id=' + str(self.user_id) + '&locale=' + self.locale
-            response = await http_client.get(f'https://new.trstempire.com/api/rewards?{params}')
+            response = await http_client.get(f'https://new.trstempire.com/api/v1/rewards?{params}')
             response.raise_for_status()
 
             response_json = await response.json()
