@@ -222,24 +222,24 @@ class Tapper:
             if settings.AUTO_TASK:
                 for task in tasks:
                     title = task['task_data']['title'].split('<br>')[0]
-                    if (task['type'] != 'tg_subscription'
-                            and task['active'] and not task['completed']):
-                        logger.info(f"{self.session_name} | Performing task <lc>{title}</lc>...")
-                        response_data = await self.perform_task(http_client=http_client, task_id=task['id'])
-                        if response_data and response_data.get('success'):
-                            logger.success(f"{self.session_name} | Task <lc>{title}</lc>"
-                                           f" completed! | Reward: <e>+{task['reward']}</e> points")
+                    if task['type'] != "internal" and task['active'] and not task['completed']:
+                        if task['type'] != 'tg_subscription':
+                            logger.info(f"{self.session_name} | Performing task <lc>{title}</lc>...")
+                            response_data = await self.perform_task(http_client=http_client, task_id=task['id'])
+                            if response_data and response_data.get('success'):
+                                logger.success(f"{self.session_name} | Task <lc>{title}</lc>"
+                                               f" completed! | Reward: <e>+{task['reward']}</e> points")
 
-                        await asyncio.sleep(delay=randint(5, 10))
-                    elif not task['completed'] and settings.JOIN_CHANNELS:
-                        logger.info(f"{self.session_name} | Performing TG <lc>{title}</lc>...")
-                        await self.join_tg_channel(task['url'])
-                        response_data = await self.perform_tg_task(http_client=http_client, task_id=task['_id'])
-                        if response_data and response_data.get('success'):
-                            logger.success(f"{self.session_name} | Task <lc>{title}</lc>"
-                                           f" completed! | Reward: <e>+{task['reward']}</e> points")
+                            await asyncio.sleep(delay=randint(5, 10))
+                        elif settings.JOIN_CHANNELS:
+                            logger.info(f"{self.session_name} | Performing TG <lc>{title}</lc>...")
+                            await self.join_tg_channel(task['url'])
+                            response_data = await self.perform_tg_task(http_client=http_client, task_id=task['_id'])
+                            if response_data and response_data.get('success'):
+                                logger.success(f"{self.session_name} | Task <lc>{title}</lc>"
+                                               f" completed! | Reward: <e>+{task['reward']}</e> points")
 
-                        await asyncio.sleep(delay=randint(5, 10))
+                            await asyncio.sleep(delay=randint(5, 10))
 
         except Exception as error:
             logger.error(f"{self.session_name} | Unknown error when completing tasks: {error}")
