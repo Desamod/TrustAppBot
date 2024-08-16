@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     API_ID: int
     API_HASH: str
 
+    START_DELAY: list[int] = [5, 15]
     SLEEP_TIME: list[int] = [3000, 3600]
     AUTO_TASK: bool = True
     JOIN_CHANNELS: bool = True
