@@ -14,6 +14,7 @@
 | Support for tdata / pyrogram .session / telethon .session |     ✅     |
 | Auto-tasks                                                |     ✅     |
 | Auto-daily                                                |     ✅     |
+| Wheel of fortune autoplay                                 |     ✅     |
 
 
 ## [Settings](https://github.com/Desamod/TrustAppBot/blob/master/.env-example/)
@@ -23,6 +24,7 @@
 | **SLEEP_TIME**          |            Sleep time between cycles (by default - [3000, 3600])            |
 | **AUTO_TASK**           |                         Auto tasks (default - True)                         |
 | **JOIN_CHANNELS**       |              Auto-join for tg channels tasks (default - True)               |
+| **FORTUNE_REWARDS**     |          Rewards from the wheel of fortune ([200, 250,..., 2000])           |
 | **USE_REF**             |                      Using a ref link (default - True)                      |
 | **USE_PROXY_FROM_FILE** | Whether to use a proxy from the bot/config/proxies.txt file (True / False)  |
 

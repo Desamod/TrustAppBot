@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     START_DELAY: list[int] = [5, 15]
     SLEEP_TIME: list[int] = [3000, 3600]
+    FORTUNE_REWARDS: list[int] = [200, 250, 500, 750, 1000, 1250, 1500, 2000]
     AUTO_TASK: bool = True
     JOIN_CHANNELS: bool = True
     USE_REF: bool = True

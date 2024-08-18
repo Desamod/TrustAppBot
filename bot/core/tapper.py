@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from time import time
 from urllib.parse import unquote, quote
 
@@ -214,10 +215,17 @@ class Tapper:
             tasks_json = await response.json()
 
             daily_tasks = tasks_json['dailyTasks']['tasks']
+            fortune_task = tasks_json['fortuneSpinTask']
             tasks = tasks_json['trustTasks'] + tasks_json['partnerTasks']
 
             await self.claim_daily(http_client=http_client, tasks=daily_tasks)
             await asyncio.sleep(delay=3)
+            fortune_claim_time = fortune_task['nextSpin']
+            parsed_time = datetime.strptime(fortune_claim_time, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()
+            delta_time = parsed_time - datetime.utcnow().timestamp()
+            if delta_time < 0:
+                await self.claim_fortune_reward(http_client=http_client, task_id=fortune_task['_id'])
+                await asyncio.sleep(delay=3)
 
             if settings.AUTO_TASK:
                 for task in tasks:
@@ -243,6 +251,25 @@ class Tapper:
 
         except Exception as error:
             logger.error(f"{self.session_name} | Unknown error when completing tasks: {error}")
+            await asyncio.sleep(delay=3)
+
+    async def claim_fortune_reward(self, http_client: aiohttp.ClientSession, task_id: str):
+        try:
+            reward = settings.FORTUNE_REWARDS[randint(0, len(settings.FORTUNE_REWARDS) - 1)]
+            json_data = {
+                'user_id': self.user_id,
+                'task_id': task_id,
+                'reward': reward
+            }
+            response = await http_client.post(f'https://new.trstempire.com/api/v1/tasks/complete', json=json_data)
+            response.raise_for_status()
+            response_json = await response.json()
+
+            if response_json.get('active'):
+                logger.success(f"{self.session_name} | Fortune reward claimed! | Got: <e>{reward}</e>")
+
+        except Exception as error:
+            logger.error(f"{self.session_name} | Unknown error when claiming fortune reward: {error}")
             await asyncio.sleep(delay=3)
 
     async def perform_task(self, http_client: aiohttp.ClientSession, task_id: str):
