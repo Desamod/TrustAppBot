@@ -324,6 +324,7 @@ class Tapper:
                 if time() - access_token_created_time >= token_live_time:
                     tg_web_data = await self.get_tg_web_data(proxy=proxy)
                     init_params = tg_web_data + '&start_param=' + get_link_code()
+                    http_client.headers['Authorization'] = f'tma {self.headers}'
                     user_info = await self.get_info_data(http_client=http_client, init_params=init_params)
 
                     if user_info.get('country') is None:
