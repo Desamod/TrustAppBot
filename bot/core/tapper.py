@@ -28,6 +28,7 @@ class Tapper:
         self.user_id = 0
         self.country = 'US'
         self.locale = 'en'
+        self.headers = ''
 
     async def get_tg_web_data(self, proxy: str | None) -> str:
         if proxy:
@@ -86,11 +87,15 @@ class Tapper:
             tg_web_data = unquote(
                 string=unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0]))
             query_id = tg_web_data.split('query_id=')[1].split('&user=')[0]
+            user = quote(tg_web_data.split("&user=")[1].split('&auth_date=')[0])
+            auth_date = tg_web_data.split('&auth_date=')[1].split('&hash=')[0]
             user_name = tg_web_data.split('"username":"')[1].split('","')[0] if "username" in tg_web_data else ''
             first_name = tg_web_data.split('"first_name":"')[1].split('","')[0]
             hash_ = tg_web_data.split('&hash=')[1]
             self.locale = tg_web_data.split('"language_code":"')[1][:2]
             self.user_id = int(tg_web_data.split('"id":')[1].split(',"')[0])
+            self.headers = f'query_id={query_id}&user={user}&auth_date={auth_date}&hash={hash_}'
+
             if self.tg_client.is_connected:
                 await self.tg_client.disconnect()
 
@@ -179,7 +184,7 @@ class Tapper:
             response = await http_client.post(url='https://new.trstempire.com/api/set_country', json=payload)
             response_json = await response.json()
             if response_json.get('success'):
-                logger.error(f"{self.session_name} | Country is set | Current country: {self.country}")
+                logger.success(f"{self.session_name} | Country is set | Current country: {self.country}")
         except Exception as error:
             logger.error(f"{self.session_name} | Error while setting country code: {error}")
 
@@ -233,8 +238,8 @@ class Tapper:
                     if task['type'] != "internal" and task['active'] and not task['completed']:
                         if task['type'] != 'tg_subscription':
                             logger.info(f"{self.session_name} | Performing task <lc>{title}</lc>...")
-                            response_data = await self.perform_task(http_client=http_client, task_id=task['id'])
-                            if response_data and response_data.get('success'):
+                            response_data = await self.perform_task(http_client=http_client, task_id=task['_id'])
+                            if response_data:
                                 logger.success(f"{self.session_name} | Task <lc>{title}</lc>"
                                                f" completed! | Reward: <e>+{task['reward']}</e> points")
 
@@ -243,7 +248,7 @@ class Tapper:
                             logger.info(f"{self.session_name} | Performing TG <lc>{title}</lc>...")
                             await self.join_tg_channel(task['url'])
                             response_data = await self.perform_tg_task(http_client=http_client, task_id=task['_id'])
-                            if response_data and response_data.get('success'):
+                            if response_data:
                                 logger.success(f"{self.session_name} | Task <lc>{title}</lc>"
                                                f" completed! | Reward: <e>+{task['reward']}</e> points")
 
@@ -276,10 +281,9 @@ class Tapper:
         try:
             payload = {
                 "user_id": self.user_id,
-                "task_id": task_id,
-                "locale": self.locale
+                "task_id": task_id
             }
-            response = await http_client.post(url='https://new.trstempire.com/api/task', json=payload)
+            response = await http_client.post(url='https://new.trstempire.com/api/v1/tasks/complete', json=payload)
             response.raise_for_status()
             response_json = await response.json()
             return response_json
