@@ -135,10 +135,39 @@ class Tapper:
             logger.error(f"{self.session_name} | Unknown error when getting rewards data: {error}")
             await asyncio.sleep(delay=randint(3, 7))
 
+    async def get_level_reward(self, http_client: aiohttp.ClientSession, level: int):
+        try:
+            json_data = {
+                'user_id': self.user_id,
+                'level': level
+            }
+            response = await http_client.post(f'https://new.trstempire.com/api/v1/tasks/complete-level-up',
+                                              json=json_data)
+            response.raise_for_status()
+            return True
+
+        except Exception as error:
+            logger.error(f"{self.session_name} | Unknown error when getting level reward: {error}")
+            await asyncio.sleep(delay=randint(3, 7))
+            return False
+
+    async def get_notifications(self, http_client: aiohttp.ClientSession):
+        try:
+            params = 'user_id=' + str(self.user_id)
+            response = await http_client.get(f'https://new.trstempire.com/api/v1/notifications/get-pending?{params}')
+            response.raise_for_status()
+
+            response_json = await response.json()
+            return response_json
+
+        except Exception as error:
+            logger.error(f"{self.session_name} | Unknown error when getting notifications: {error}")
+            await asyncio.sleep(delay=randint(3, 7))
+
     async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
         try:
-            response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
-            ip = (await response.json()).get('origin')
+            response = await http_client.get(url='https://ipinfo.io/ip', timeout=aiohttp.ClientTimeout(10))
+            ip = (await response.text())
             logger.info(f"{self.session_name} | Proxy IP: {ip}")
         except Exception as error:
             logger.error(f"{self.session_name} | Proxy: {proxy} | Error: {error}")
@@ -235,6 +264,8 @@ class Tapper:
             if settings.AUTO_TASK:
                 for task in tasks:
                     title = task['task_data']['title'].split('<br>')[0]
+                    if task['type'] == 'boost_tg_channel':
+                        continue
                     if task['type'] != "internal" and task['active'] and not task['completed']:
                         if task['type'] != 'tg_subscription':
                             logger.info(f"{self.session_name} | Performing task <lc>{title}</lc>...")
@@ -334,9 +365,26 @@ class Tapper:
                     token_live_time = randint(3500, 3600)
 
                     balance = user_info['balance']
+                    level_data = user_info['level']
+                    level = level_data['level']
+                    to_next_level = level_data['to_next_level']
 
-                    logger.info(f"{self.session_name} | Balance: <e>{balance}</e>")
                     await self.get_rewards(http_client=http_client)
+                    notifications = await self.get_notifications(http_client=http_client)
+                    for notify in notifications:
+                        if notify['name'] == "next_level_reached" and notify['state'] == 'pending':
+                            level = notify['data']['level']
+                            reward = notify['data']['reward']
+                            logger.info(f"{self.session_name} | Next Level Reached! | Getting rewards..")
+                            await asyncio.sleep(delay=3)
+                            result = await self.get_level_reward(http_client=http_client, level=level)
+                            if result:
+                                logger.success(f"{self.session_name} | | Got level reward: <e>{reward}</e> points")
+                            await asyncio.sleep(delay=randint(3, 8))
+
+                    logger.info(f"{self.session_name} | Balance: <e>{balance}</e> | User level: <y>{level}</y> | "
+                                f"<c>{to_next_level}</c> points to the next level")
+
                     await self.processing_tasks(http_client=http_client)
 
                     sleep_time = randint(settings.SLEEP_TIME[0], settings.SLEEP_TIME[1])
