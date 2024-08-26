@@ -112,7 +112,7 @@ class Tapper:
 
     async def get_info_data(self, http_client: aiohttp.ClientSession, init_params: str):
         try:
-            response = await http_client.get(f'https://new.trstempire.com/api/join?{init_params}')
+            response = await http_client.get(f'https://new.trstempire.com/api/v1/join?{init_params}')
             response.raise_for_status()
 
             response_json = await response.json()
@@ -244,7 +244,7 @@ class Tapper:
 
     async def processing_tasks(self, http_client: aiohttp.ClientSession):
         try:
-            response = await http_client.get(url=f'https://new.trstempire.com/api/v1/tasks/grouped/{self.user_id}')
+            response = await http_client.get('https://new.trstempire.com/api/v1/tasks/grouped')
             response.raise_for_status()
             tasks_json = await response.json()
 
