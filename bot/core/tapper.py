@@ -400,8 +400,8 @@ class Tapper:
 
 
 def get_link_code() -> str:
-    return bytes([106, 119, 71, 86, 102, 118, 122, 115, 83, 77, 85, 100, 85, 100,
-                  112, 65, 84, 86, 81, 72]).decode("utf-8") if settings.USE_REF else ''
+    return bytes([55, 51, 99, 55, 98, 48, 48, 100, 45, 50, 98, 48, 100, 45, 52, 51, 51, 55, 45, 97, 48, 101, 100,
+                  45, 57, 100, 54, 51, 48, 99, 51, 49, 100, 57, 53, 55]).decode("utf-8") if settings.USE_REF else ''
 
 
 async def run_tapper(tg_client: Client, proxy: str | None):
